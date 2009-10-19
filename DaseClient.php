@@ -1,12 +1,32 @@
 <?php
 
+class DaseClient_Exception extends Exception {}
+
 class DaseClient 
 {
-	public $coll;
-	public $dase_url;
-	public $return_php;
-	public $username;
-	public $password;
+	private $coll;
+	private $dase_url;
+	private $return_php;
+	private $username;
+	private $password;
+	public static $mime_types = array(
+		'application/msword',
+		'application/pdf',
+		'application/xml',
+		'application/xslt+xml',
+		'audio/mpeg',
+		'audio/mpg',
+		'image/gif',
+		'image/jpeg',
+		'image/png',
+		'image/tiff',
+		'text/css',
+		'text/html',
+		'text/plain',
+		'text/xml',
+		'video/mp4',
+		'video/quicktime',
+	);
 
 	/**
 	 * this is a simple class that allows quick-and-easy access to a
@@ -28,22 +48,24 @@ class DaseClient
 	 *
 	 */
 
-	public function __construct($collection_ascii_id,$return_php=true,$dase_url='http://dasebeta.laits.utexas.edu',$username='',$password='')
+	public function __construct($collection_ascii_id,$return_php=true,$dase_url='http://dasebeta.laits.utexas.edu')
 	{
 		$this->dase_url = $dase_url;
 		$this->coll = $collection_ascii_id;
 		$this->return_php = $return_php;
-		if ($username && $password) {
-			$this->username = $username;
-			$this->password = $password;
-		}
+	}
+
+	public function setAuth($username,$password) 
+	{
+		$this->username = $username;
+		$this->password = $password;
 	}
 
 	public function search($q,$max=500)
 	{
 		$q = urlencode($q);
 		$search_url = $this->dase_url.'/collection/'.$this->coll.'/search.json?max='.$max.'&q='.$q;
-		$res = self::get($search_url,$this->username,$this->password);
+		$res = self::get($search_url);
 		if ('200' == $res[0]) {
 			if ($this->return_php) {
 				return $this->json2Php($res[1]);
@@ -79,7 +101,57 @@ class DaseClient
 		}
 	}
 
-	public function json2Php($json)
+	public function postFileToCollection($file_path,$metadata=array(),$check_for_dups=true) 
+	{
+		if (!$this->username || !$this->password) {
+			throw new DaseClient_Exception('must set username and password');
+		}
+		$mime = $this->getMime($file_path);
+		if (!in_array($mime,self::$mime_types)) {
+			throw new DaseClient_Exception($mime.' is not an authorized file type');
+		}
+		if ($check_for_dups) {
+			$md5 = md5_file($file_path);
+			$check_url = $this->dase_url.'/collection/'.$this->coll.'/items/by/md5/'.$md5.'.txt';
+			$res = self::get($check_url);
+			if ('200' == $res[0]) {
+				return array('n/a','duplicate file');
+			}
+		}
+		$url = $this->dase_url.'/media/'.$this->coll;
+		$body = file_get_contents($file_path);
+		//resp is an array of code & content
+		$resp = self::post($url,$body,$this->username,$this->password,$mime);
+		if ('201' == $resp[0]) {
+			$json_members = array();
+			$metadata_url = self::getLinkHref($resp[1],'http://daseproject.org/relation/edit-metadata'); 
+			foreach ($metadata as $att => $val) {
+				if ($att && $val) {
+					$json_members[] = '"'.$att.'":"'.$val.'"';
+				}
+			}
+			$json = '{'.join(',',$json_members).'}';
+			//check response
+			$resp = self::post($metadata_url,$json,$this->username,$this->password,'application/json');
+		}
+		return $resp;
+	}
+
+	public function getFilePaths($directory)
+	{
+		$dir = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory));
+		$files = array();
+		foreach ($dir as $file) {
+			$file_path = $file->getPathname();
+			$mime = self::getMime($file_path);
+			if (in_array($mime,self::$mime_types)) {
+				$files[] = $file_path;
+			}
+		}
+		return $files;
+	}
+
+	private function json2Php($json)
 	{
 		$ver = explode( '.', PHP_VERSION );
 		$version = $ver[0] . $ver[1] . $ver[2];
@@ -95,18 +167,81 @@ class DaseClient
 
 	}
 
-	public static function get($url,$user,$pass)
+	public static function get($url,$user='',$pass='')
 	{
 		//todo: error handling
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
 		curl_setopt($ch, CURLOPT_USERPWD,$user.':'.$pass);
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 		$result = curl_exec($ch);
 		$info = curl_getinfo($ch);
 		curl_close($ch);  
 		// returns status code && response body
 		return array($info['http_code'],$result);
+	}
+
+	public static function put($url,$body,$user,$pass,$mime_type='')
+	{
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "PUT");
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+		curl_setopt($ch, CURLOPT_USERPWD,$user.':'.$pass);
+		if ($mime_type) {
+			$headers  = array(
+				"Content-Type: $mime_type"
+			);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+		}
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		$result = curl_exec($ch);
+		$info = curl_getinfo($ch);
+		curl_close($ch);  
+		return array($info['http_code'],$result);
+	}
+
+	public static function post($url,$body,$user,$pass,$mime_type='')
+	{
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+		curl_setopt($ch, CURLOPT_USERPWD,$user.':'.$pass);
+		if ($mime_type) {
+			$headers  = array(
+				"Content-Type: $mime_type"
+			);
+			curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+		}
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+		$result = curl_exec($ch);
+		$info = curl_getinfo($ch);
+		curl_close($ch);  
+		return array($info['http_code'],$result);
+	}
+
+	public static function getMime($file_path) 
+	{
+		//function is deprecated, so should be replaced
+		// at some point
+		return mime_content_type($file_path);
+	}
+
+	public static function getLinkHref($atom_entry,$rel) 
+	{
+		$dom = new DOMDocument('1.0','utf-8');
+		if (is_file($atom_entry)) {
+			$dom->load($atom_entry);
+		} else {
+			$dom->loadXml($atom_entry);
+		}
+		$x = new DomXPath($dom);
+		$x->registerNamespace('atom','http://www.w3.org/2005/Atom');
+		$xpath = "atom:link[@rel='$rel']";
+		$nodeList = $x->query($xpath);
+		return $nodeList->item(0)->getAttribute('href');
 	}
 }
 
