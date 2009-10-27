@@ -11,7 +11,7 @@ include 'DaseClient.php';
 $client = new DaseClient('vrc');
 
 $user = 'pkeane';
-$pass = '';
+$pass = 'dupload';
 
 $REPO = '/mnt/dar2/favrc/for-dase';
 
@@ -33,6 +33,7 @@ function getFilePaths($directory)
 
 $max = 40;
 
+
 foreach (getFilePaths($REPO) as $file) {
 	$max--;
 	if ($max > 0) {
@@ -41,10 +42,15 @@ foreach (getFilePaths($REPO) as $file) {
 			print $file['path'].":".filemtime($file['path'])."\n";
 			$acc = str_replace('.tif','',$file['name']);
 			$res = $client->search('acc_num_PK:'.$acc);
-			$url = 'https://daseupload.laits.utexas.edu'.$res->items[0]->links->media;
-			$bits = file_get_contents($file['path']);
-			$resp = DaseClient::post($url,$bits,$user,$pass,'image/tiff');
-			print_r($resp);
+			print_r($res);
+			if (isset($res->items) && count($res->items)) {
+				$url = 'https://daseupload.laits.utexas.edu'.$res->items[0]->links->media;
+				//$bits = file_get_contents($file['path']);
+				//$resp = DaseClient::post($url,$bits,$user,$pass,'image/tiff');
+				//print_r($resp);
+			} else {
+				print "found no record in DASe\n";
+			}
 		}
 
 	}

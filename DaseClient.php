@@ -167,6 +167,24 @@ class DaseClient
 
 	}
 
+	public static function makeAtom($id,$title,$data) {
+		$ns = 'http://www.w3c.org/2005/Atom';
+		$dom = new DOMDocument('1.0','utf-8');
+		$root = $dom->appendChild($dom->createElementNS($ns,'entry'));
+		$id = $root->appendChild($this->dom->createElementNS($ns,'id'));
+		$id->appendChild($this->dom->createTextNode($id));
+		$title = $root->appendChild($this->dom->createElementNS($ns,'title'));
+		$title->appendChild($this->dom->createTextNode($title));
+		foreach ($data as $k => $v) {
+			$category = $root->appendChild($this->dom->createElementNS($ns,'category'));
+			$category->appendChild($this->dom->createTextNode($v));
+			$category->setAttribute('scheme','http://daseproject.org/category/metadata');
+			$category->setAttribute('term',$k);
+		}
+		$dom->formatOutput = true;
+		return $dom->saveXML();
+	}
+
 	public static function get($url,$user='',$pass='')
 	{
 		//todo: error handling
