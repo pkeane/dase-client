@@ -168,18 +168,20 @@ class DaseClient
 	}
 
 	public static function makeAtom($id,$title,$data) {
-		$ns = 'http://www.w3c.org/2005/Atom';
+		$ns = 'http://www.w3.org/2005/Atom';
 		$dom = new DOMDocument('1.0','utf-8');
 		$root = $dom->appendChild($dom->createElementNS($ns,'entry'));
-		$id = $root->appendChild($this->dom->createElementNS($ns,'id'));
-		$id->appendChild($this->dom->createTextNode($id));
-		$title = $root->appendChild($this->dom->createElementNS($ns,'title'));
-		$title->appendChild($this->dom->createTextNode($title));
+		$id_elem = $root->appendChild($dom->createElementNS($ns,'id'));
+		$id_elem->appendChild($dom->createTextNode($id));
+		$title_elem = $root->appendChild($dom->createElementNS($ns,'title'));
+		$title_elem->appendChild($dom->createTextNode($title));
 		foreach ($data as $k => $v) {
-			$category = $root->appendChild($this->dom->createElementNS($ns,'category'));
-			$category->appendChild($this->dom->createTextNode($v));
-			$category->setAttribute('scheme','http://daseproject.org/category/metadata');
-			$category->setAttribute('term',$k);
+			if ($k && $v) {
+				$category = $root->appendChild($dom->createElementNS($ns,'category'));
+				$category->appendChild($dom->createTextNode($v));
+				$category->setAttribute('scheme','http://daseproject.org/category/metadata');
+				$category->setAttribute('term',$k);
+			}
 		}
 		$dom->formatOutput = true;
 		return $dom->saveXML();
@@ -265,6 +267,15 @@ class DaseClient
 		$xpath = "atom:link[@rel='$rel']";
 		$nodeList = $x->query($xpath);
 		return $nodeList->item(0)->getAttribute('href');
+	}
+
+	public static function getPassword($user)
+	{
+		print "enter password for user $user:\n";
+		system('stty -echo');
+		$password = trim(fgets(STDIN));
+		system('stty echo');
+		return $password; 
 	}
 }
 

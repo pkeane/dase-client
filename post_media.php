@@ -2,16 +2,25 @@
 
 include 'DaseClient.php';
 
+$user = 'pkeane';
+$pass = DaseClient::getPassword($user);
+$REPO = '/mnt/dar2/diia/wallercreek';
 
-$c = new DaseClient('ee_jewish_history');
-$c->setAuth('pkeane','098xxx123');
 
-foreach ($c->getFilePaths('/mnt/home/pkeane/bulgarian_journal') as $fp) {
+$c = new DaseClient('waller');
+$c->setAuth($user,$pass);
+
+foreach ($c->getFilePaths('/mnt/dar2/diia/wallercreek') as $fp) {
 	$parts = explode('/',$fp);
 	$last = array_pop($parts);
-	$name = str_replace('.jpg','',$last);
+	$name = str_replace('.JPG','',$last);
+	$path = str_replace($REPO,'',$fp);
+	$parts2 = explode('/',trim($path,'/'));
+	$year = array_shift($parts2);
+	$date = array_shift($parts2);
+
 	print $name."\n";
-	$meta = array('format'=>'Journal','country'=>'Bulgaria','title'=>$name,'number_in_series'=>$name);
+	$meta = array('description'=>$name,'title'=>$path,'year'=>$year,'date' => $date);
 	$res = $c->postFileToCollection($fp,$meta);
 	print $res[1];
 }
