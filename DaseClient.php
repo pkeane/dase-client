@@ -88,6 +88,15 @@ class DaseClient
 		}
 	}
 
+	public function getCollectionAttributesAtom()
+	{
+		$url = $this->dase_url.'/collection/'.$this->coll.'/attributes.atom';
+		$res = self::get($url,$this->username,$this->password);
+		if ('200' == $res[0]) {
+			return $res[1];
+		}
+	}
+
 	public function getAttributeValues($att)
 	{
 		$url = $this->dase_url.'/attribute/'.$this->coll.'/'.$att.'.json';
@@ -99,6 +108,16 @@ class DaseClient
 				return $res[1];
 			}
 		}
+	}
+
+	public function postAttributeToCollection($attribute_atom_entry) 
+	{
+		if (!$this->username || !$this->password) {
+			throw new DaseClient_Exception('must set username and password');
+		}
+		$url = $this->dase_url.'/collection/'.$this->coll.'/attributes';
+		$resp = self::post($url,$attribute_atom_entry,$this->username,$this->password,'application/atom+xml');
+		return $resp[0];
 	}
 
 	public function postFileToCollection($file_path,$metadata=array(),$check_for_dups=true) 
@@ -252,6 +271,25 @@ class DaseClient
 		//function is deprecated, so should be replaced
 		// at some point
 		return mime_content_type($file_path);
+	}
+
+	public static function getLinksByRel($atom,$rel) 
+	{
+		$dom = new DOMDocument('1.0','utf-8');
+		if (is_file($atom)) {
+			$dom->load($atom);
+		} else {
+			$dom->loadXml($atom);
+		}
+		$x = new DomXPath($dom);
+		$x->registerNamespace('atom','http://www.w3.org/2005/Atom');
+		$xpath = "//atom:link[@rel='$rel']";
+		$nodeList = $x->query($xpath);
+		$links = array();
+		foreach ($nodeList as $node) {
+			$links[] = $node->getAttribute('href');
+		}
+		return $links;
 	}
 
 	public static function getLinkHref($atom_entry,$rel) 
