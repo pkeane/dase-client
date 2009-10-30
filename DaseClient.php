@@ -61,6 +61,16 @@ class DaseClient
 		$this->password = $password;
 	}
 
+	public function getUsername() 
+	{
+		return $this->username;
+	}
+
+	public function getPassword() 
+	{
+		return $this->password;
+	}
+
 	public function search($q,$max=500)
 	{
 		$q = urlencode($q);
@@ -72,6 +82,15 @@ class DaseClient
 			} else {
 				return $res[1];
 			}
+		}
+	}
+
+	public function getItemsAtom($limit)
+	{
+		$url = $this->dase_url.'/collection/'.$this->coll.'.atom?limit='.$limit;
+		$res = self::get($url,$this->username,$this->password);
+		if ('200' == $res[0]) {
+			return $res[1];
 		}
 	}
 
@@ -208,8 +227,14 @@ class DaseClient
 
 	public static function get($url,$user='',$pass='')
 	{
+		//print_r(func_get_args());
 		//todo: error handling
 		$ch = curl_init();
+		if (strpos($url,'?')) {
+			$url = $url .'&auth=http';
+		} else {
+			$url = $url .'?auth=http';
+		}
 		curl_setopt($ch, CURLOPT_URL, $url);
 		curl_setopt($ch, CURLOPT_USERPWD,$user.':'.$pass);
 		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
@@ -245,6 +270,11 @@ class DaseClient
 
 	public static function post($url,$body,$user,$pass,$mime_type='')
 	{
+		if (strpos($url,'?')) {
+			$url = $url .'&auth=http';
+		} else {
+			$url = $url .'?auth=http';
+		}
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
 		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
@@ -273,6 +303,21 @@ class DaseClient
 		return mime_content_type($file_path);
 	}
 
+	public static function getEntries($atom_feed) 
+	{
+		$dom = new DOMDocument('1.0','utf-8');
+		$dom->loadXml($atom_feed);
+		$atom_ns = 'http://www.w3.org/2005/Atom';
+		foreach ($dom->getElementsByTagNameNS($atom_ns,'entry') as $el) {
+			$newdoc = new DOMDocument('1.0', 'UTF-8');
+			$newdoc->formatOutput = true;
+			$new_el = $newdoc->importNode($el,true);
+			$newdoc->appendChild($new_el);
+			$entries[] = $newdoc->saveXML();
+		}
+		return $entries;
+	}
+
 	public static function getLinksByRel($atom,$rel) 
 	{
 		$dom = new DOMDocument('1.0','utf-8');
@@ -283,7 +328,7 @@ class DaseClient
 		}
 		$x = new DomXPath($dom);
 		$x->registerNamespace('atom','http://www.w3.org/2005/Atom');
-		$xpath = "//atom:link[@rel='$rel']";
+		$xpath = "//atom/link[@rel='$rel']";
 		$nodeList = $x->query($xpath);
 		$links = array();
 		foreach ($nodeList as $node) {
@@ -302,12 +347,14 @@ class DaseClient
 		}
 		$x = new DomXPath($dom);
 		$x->registerNamespace('atom','http://www.w3.org/2005/Atom');
-		$xpath = "atom:link[@rel='$rel']";
+		$xpath = "//atom:link[@rel='$rel']";
 		$nodeList = $x->query($xpath);
-		return $nodeList->item(0)->getAttribute('href');
+		if ($nodeList->item(0)) {
+			return $nodeList->item(0)->getAttribute('href');
+		}
 	}
 
-	public static function getPassword($user)
+	public static function promptForPassword($user)
 	{
 		print "enter password for user $user:\n";
 		system('stty -echo');
