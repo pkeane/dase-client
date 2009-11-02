@@ -241,10 +241,11 @@ class DaseClient
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
 		$result = curl_exec($ch);
+		//status is 'http_code'
 		$info = curl_getinfo($ch);
+		$error = curl_error($ch);
 		curl_close($ch);  
-		// returns status code && response body
-		return array($info['http_code'],$result);
+		return array($info,$result,$error);
 	}
 
 	public static function put($url,$body,$user,$pass,$mime_type='')
@@ -263,9 +264,11 @@ class DaseClient
 		}
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		$result = curl_exec($ch);
+		//status is 'http_code'
 		$info = curl_getinfo($ch);
+		$error = curl_error($ch);
 		curl_close($ch);  
-		return array($info['http_code'],$result);
+		return array($info,$result,$error);
 	}
 
 	public static function post($url,$body,$user,$pass,$mime_type='')
@@ -289,11 +292,11 @@ class DaseClient
 		}
 		curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 		$result = curl_exec($ch);
+		//status is 'http_code'
 		$info = curl_getinfo($ch);
-		//not using error just now
 		$error = curl_error($ch);
 		curl_close($ch);  
-		return array($info['http_code'],$result);
+		return array($info,$result,$error);
 	}
 
 	public static function getMime($file_path) 
@@ -318,17 +321,26 @@ class DaseClient
 		return $entries;
 	}
 
+	public static function getCategoryTermByScheme($atom,$scheme) 
+	{
+		$dom = new DOMDocument('1.0','utf-8');
+		$dom->loadXml($atom);
+		$x = new DomXPath($dom);
+		$x->registerNamespace('atom','http://www.w3.org/2005/Atom');
+		$xpath = "//atom:category[@scheme='$scheme']";
+		$nodeList = $x->query($xpath);
+		foreach ($nodeList as $node) {
+			return $node->getAttribute('term');
+		}
+	}
+
 	public static function getLinksByRel($atom,$rel) 
 	{
 		$dom = new DOMDocument('1.0','utf-8');
-		if (is_file($atom)) {
-			$dom->load($atom);
-		} else {
-			$dom->loadXml($atom);
-		}
+		$dom->loadXml($atom);
 		$x = new DomXPath($dom);
 		$x->registerNamespace('atom','http://www.w3.org/2005/Atom');
-		$xpath = "//atom/link[@rel='$rel']";
+		$xpath = "//atom:link[@rel='$rel']";
 		$nodeList = $x->query($xpath);
 		$links = array();
 		foreach ($nodeList as $node) {
@@ -337,21 +349,87 @@ class DaseClient
 		return $links;
 	}
 
-	public static function getLinkHref($atom_entry,$rel) 
+	public static function getLinkByRel($atom_entry,$rel) 
 	{
 		$dom = new DOMDocument('1.0','utf-8');
-		if (is_file($atom_entry)) {
-			$dom->load($atom_entry);
-		} else {
-			$dom->loadXml($atom_entry);
+		$dom->loadXml($atom_entry);
+		$x = new DomXPath($dom);
+		$x->registerNamespace('atom','http://www.w3.org/2005/Atom');
+		$xpath = "//atom:link[@rel='$rel']";
+		$nodeList = $x->query($xpath);
+		$links = array();
+		foreach ($nodeList as $node) {
+			return $node->getAttribute('href');
+		}
+	}
+
+	public static function getLinkTitleByRel($atom_entry,$rel) 
+	{
+		$dom = new DOMDocument('1.0','utf-8');
+		if (!@ $dom->loadXml($atom_entry)) {
+			print $atom_entry; exit;
 		}
 		$x = new DomXPath($dom);
 		$x->registerNamespace('atom','http://www.w3.org/2005/Atom');
 		$xpath = "//atom:link[@rel='$rel']";
 		$nodeList = $x->query($xpath);
-		if ($nodeList->item(0)) {
-			return $nodeList->item(0)->getAttribute('href');
+		$links = array();
+		foreach ($nodeList as $node) {
+			return $node->getAttribute('title');
 		}
+	}
+
+	function getMetadata($atom_entry,$att = '',$include_private_metadata=false) 
+	{
+		$metadata = array();
+		$dom = new DOMDocument('1.0','utf-8');
+		$dom->loadXml($atom_entry);
+		$atom_ns = 'http://www.w3.org/2005/Atom';
+		$dase_ns = 'http://daseproject.org/ns/1.0';
+		foreach ($dom->getElementsByTagNameNS($atom_ns,'category') as $el) {
+			if ('http://daseproject.org/category/metadata' == $el->getAttribute('scheme')) {
+				$v = array();
+				$att_ascii_id = $el->getAttribute('term');
+				$metadata[$att_ascii_id]['attribute_name'] = $el->getAttribute('label');
+				$v['edit'] = $el->getAttributeNS($dase_ns,'edit-id');
+				$v['id'] = array_pop(explode('/',$v['edit'])); //provides the last segment, i.e. value id
+				$v['text'] = $el->nodeValue;
+				$v['mod'] = $el->getAttributeNS($dase_ns,'mod');
+				$v['modtype'] = $el->getAttributeNS($dase_ns,'modtype');
+				$metadata[$att_ascii_id]['values'][] = $v;
+				//easy access to first value
+				if (1 == count($metadata[$att_ascii_id]['values'])) {
+					$metadata[$att_ascii_id]['text'] = $v['text'];
+					$metadata[$att_ascii_id]['edit'] = $v['edit'];
+					$metadata[$att_ascii_id]['id'] = $v['id'];
+				}
+			}
+			if ($include_private_metadata &&
+				'http://daseproject.org/category/private_metadata' == $el->getAttribute('scheme')) {
+					$att_ascii_id = $el->getAttribute('term');
+					$metadata[$att_ascii_id]['attribute_name'] = $el->getAttribute('label');
+					$v['edit'] = $el->getAttributeNS($dase_ns,'edit-id');
+					$v['id'] = array_pop(explode('/',$v['edit'])); //provides the last segment, i.e. value id
+					$v['text'] = $el->nodeValue;
+					$v['mod'] = $el->getAttributeNS($dase_ns,'mod');
+					$v['modtype'] = $el->getAttributeNS($dase_ns,'modtype');
+					$metadata[$att_ascii_id]['values'][] = $v;
+					//easy access to first value
+					if (1 == count($metadata[$att_ascii_id]['values'])) {
+						$metadata[$att_ascii_id]['text'] = $v['text'];
+						$metadata[$att_ascii_id]['edit'] = $v['edit'];
+						$metadata[$att_ascii_id]['id'] = $v['id'];
+					}
+				}
+		}
+		if ($att) {
+			if (isset($metadata[$att])) {
+				return $metadata[$att];
+			} else {
+				return false;
+			}
+		}
+		return $metadata;
 	}
 
 	public static function promptForPassword($user)
