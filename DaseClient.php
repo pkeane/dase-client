@@ -48,11 +48,11 @@ class DaseClient
 	 *
 	 */
 
-	public function __construct($collection_ascii_id,$return_php=true,$dase_url='http://dasebeta.laits.utexas.edu')
+	public function __construct($collection_ascii_id,$return='json',$dase_url='http://dasebeta.laits.utexas.edu')
 	{
 		$this->dase_url = $dase_url;
 		$this->coll = $collection_ascii_id;
-		$this->return_php = $return_php;
+		$this->return = $return;
 	}
 
 	public function setAuth($username,$password) 
@@ -74,10 +74,15 @@ class DaseClient
 	public function search($q,$max=500)
 	{
 		$q = urlencode($q);
-		$search_url = $this->dase_url.'/collection/'.$this->coll.'/search.json?max='.$max.'&q='.$q;
+		if($this->return == 'atom'){
+			$search_url = $this->dase_url.'/collection/'.$this->coll.'/search.atom?max='.$max.'&q='.$q;
+		}
+		else{
+			$search_url = $this->dase_url.'/collection/'.$this->coll.'/search.json?max='.$max.'&q='.$q;
+		}
 		$res = self::get($search_url);
 		if ('200' == $res[0]['http_code']) {
-			if ($this->return_php) {
+			if ($this->return == 'php') {
 				return $this->json2Php($res[1]);
 			} else {
 				return $res[1];
@@ -362,6 +367,34 @@ class DaseClient
 			return $node->getAttribute('href');
 		}
 	}
+	public static function getMediaBySize($atom_entry,$size) 
+	{
+		$dom = new DOMDocument('1.0','utf-8');
+		$dom->loadXml($atom_entry);
+		$x = new DomXPath($dom);
+		$x->registerNamespace('media','http://search.yahoo.com/mrss/');
+		$xpath = "//media:category";
+		$nodeList = $x->query($xpath);
+		$links = array();
+		foreach ($nodeList as $node) {
+			if($node->nodeValue == $size){
+				return $node->parentNode->getAttribute('url');
+			}
+		}
+	}
+	public static function getThumbnail($atom_entry) 
+	{
+		$dom = new DOMDocument('1.0','utf-8');
+		$dom->loadXml($atom_entry);
+		$x = new DomXPath($dom);
+		$x->registerNamespace('media','http://search.yahoo.com/mrss/');
+		$xpath = "//media:thumbnail";
+		$nodeList = $x->query($xpath);
+		$links = array();
+		foreach ($nodeList as $node) {
+			return $node->getAttribute('url');
+		}
+	}
 
 	public static function getLinkTitleByRel($atom_entry,$rel) 
 	{
@@ -421,6 +454,25 @@ class DaseClient
 						$metadata[$att_ascii_id]['id'] = $v['id'];
 					}
 				}
+		}
+		foreach ($dom->getElementsByTagNameNS($atom_ns,'link') as $el) {
+			if(strpos($el->getAttribute('rel'), 'http://daseproject.org/relation/metadata-link/') !== false){
+				$att_ascii_id = basename($el->getAttribute('rel'));
+				$metadata[$att_ascii_id]['attribute_name'] = $el->getAttributeNS($dase_ns,'attribute');
+				$v['edit'] = $el->getAttributeNS($dase_ns,'edit-id');
+				$v['id'] = array_pop(explode('/',$v['edit'])); //provides the last segment, i.e. value id
+				$v['title'] = $el->getAttribute('title');
+				$v['href'] = $el->getAttribute('href');
+                $v['mod'] = $el->getAttributeNS($dase_ns,'mod');
+                $v['modtype'] = $el->getAttributeNS($dase_ns,'modtype');
+                $metadata[$att_ascii_id]['values'][] = $v;
+				if (1 == count($metadata[$att_ascii_id]['values'])) {
+					$metadata[$att_ascii_id]['title'] = $v['title'];
+					$metadata[$att_ascii_id]['href'] = $v['href'];
+					$metadata[$att_ascii_id]['edit'] = $v['edit'];
+					$metadata[$att_ascii_id]['id'] = $v['id'];
+				}
+			}
 		}
 		if ($att) {
 			if (isset($metadata[$att])) {
