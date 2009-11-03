@@ -76,7 +76,7 @@ class DaseClient
 		$q = urlencode($q);
 		$search_url = $this->dase_url.'/collection/'.$this->coll.'/search.json?max='.$max.'&q='.$q;
 		$res = self::get($search_url);
-		if ('200' == $res[0]) {
+		if ('200' == $res[0]['http_code']) {
 			if ($this->return_php) {
 				return $this->json2Php($res[1]);
 			} else {
@@ -89,7 +89,7 @@ class DaseClient
 	{
 		$url = $this->dase_url.'/collection/'.$this->coll.'.atom?limit='.$limit;
 		$res = self::get($url,$this->username,$this->password);
-		if ('200' == $res[0]) {
+		if ('200' == $res[0]['http_code']) {
 			return $res[1];
 		}
 	}
@@ -98,7 +98,7 @@ class DaseClient
 	{
 		$url = $this->dase_url.'/collection/'.$this->coll.'/attributes.json';
 		$res = self::get($url,$this->username,$this->password);
-		if ('200' == $res[0]) {
+		if ('200' == $res[0]['http_code']) {
 			if ($this->return_php) {
 				return $this->json2Php($res[1]);
 			} else {
@@ -111,7 +111,7 @@ class DaseClient
 	{
 		$url = $this->dase_url.'/collection/'.$this->coll.'/attributes.atom';
 		$res = self::get($url,$this->username,$this->password);
-		if ('200' == $res[0]) {
+		if ('200' == $res[0]['http_code']) {
 			return $res[1];
 		}
 	}
@@ -120,7 +120,7 @@ class DaseClient
 	{
 		$url = $this->dase_url.'/attribute/'.$this->coll.'/'.$att.'.json';
 		$res = self::get($url,$this->username,$this->password);
-		if ('200' == $res[0]) {
+		if ('200' == $res[0]['http_code']) {
 			if ($this->return_php) {
 				return $this->json2Php($res[1]);
 			} else {
@@ -136,7 +136,7 @@ class DaseClient
 		}
 		$url = $this->dase_url.'/collection/'.$this->coll.'/attributes';
 		$resp = self::post($url,$attribute_atom_entry,$this->username,$this->password,'application/atom+xml');
-		return $resp[0];
+		return $resp[0]['http_code'];
 	}
 
 	public function postFileToCollection($file_path,$metadata=array(),$check_for_dups=true) 
@@ -152,7 +152,7 @@ class DaseClient
 			$md5 = md5_file($file_path);
 			$check_url = $this->dase_url.'/collection/'.$this->coll.'/items/by/md5/'.$md5.'.txt';
 			$res = self::get($check_url);
-			if ('200' == $res[0]) {
+			if ('200' == $res[0]['http_code']) {
 				return array('n/a','duplicate file');
 			}
 		}
@@ -160,7 +160,7 @@ class DaseClient
 		$body = file_get_contents($file_path);
 		//resp is an array of code & content
 		$resp = self::post($url,$body,$this->username,$this->password,$mime);
-		if ('201' == $resp[0]) {
+		if ('201' == $res[0]['http_code']) {
 			$json_members = array();
 			$metadata_url = self::getLinkHref($resp[1],'http://daseproject.org/relation/edit-metadata'); 
 			foreach ($metadata as $att => $val) {
