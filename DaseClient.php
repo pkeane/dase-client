@@ -150,6 +150,7 @@ class DaseClient
 			throw new DaseClient_Exception('must set username and password');
 		}
 		$mime = $this->getMime($file_path);
+		$mime = array_shift(explode(';',$mime));
 		if (!in_array($mime,self::$mime_types)) {
 			throw new DaseClient_Exception($mime.' is not an authorized file type');
 		}
