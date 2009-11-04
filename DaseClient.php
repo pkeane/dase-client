@@ -168,7 +168,7 @@ class DaseClient
 		$resp = self::post($url,$body,$this->username,$this->password,$mime);
 		if ('201' == $res[0]['http_code']) {
 			$json_members = array();
-			$metadata_url = self::getLinkHref($resp[1],'http://daseproject.org/relation/edit-metadata'); 
+			$metadata_url = self::getLinkByRel($resp[1],'http://daseproject.org/relation/edit-metadata'); 
 			foreach ($metadata as $att => $val) {
 				if ($att && $val) {
 					$json_members[] = '"'.$att.'":"'.$val.'"';
