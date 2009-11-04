@@ -461,13 +461,21 @@ class DaseClient
 				$metadata[$att_ascii_id]['attribute_name'] = $el->getAttributeNS($dase_ns,'attribute');
 				$v['edit'] = $el->getAttributeNS($dase_ns,'edit-id');
 				$v['id'] = array_pop(explode('/',$v['edit'])); //provides the last segment, i.e. value id
+
+				//matches link attribute
 				$v['title'] = $el->getAttribute('title');
+
+				//duplicated for cases when you don't care that it is a link
+				// and so will be looking for 'text'
+				$v['text'] = $el->getAttribute('title');
+
 				$v['href'] = $el->getAttribute('href');
                 $v['mod'] = $el->getAttributeNS($dase_ns,'mod');
                 $v['modtype'] = $el->getAttributeNS($dase_ns,'modtype');
                 $metadata[$att_ascii_id]['values'][] = $v;
 				if (1 == count($metadata[$att_ascii_id]['values'])) {
 					$metadata[$att_ascii_id]['title'] = $v['title'];
+					$metadata[$att_ascii_id]['text'] = $v['title'];
 					$metadata[$att_ascii_id]['href'] = $v['href'];
 					$metadata[$att_ascii_id]['edit'] = $v['edit'];
 					$metadata[$att_ascii_id]['id'] = $v['id'];
