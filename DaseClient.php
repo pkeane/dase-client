@@ -61,6 +61,11 @@ class DaseClient
 		$this->password = $password;
 	}
 
+	public function setReturnFormat($json_or_php_or_atom) 
+	{
+		$this->return = $json_or_php_or_atom;
+	}
+
 	public function getUsername() 
 	{
 		return $this->username;
@@ -71,14 +76,14 @@ class DaseClient
 		return $this->password;
 	}
 
-	public function search($q,$max=500)
+	public function search($q='',$max=500,$start=0)
 	{
 		$q = urlencode($q);
 		if($this->return == 'atom'){
-			$search_url = $this->dase_url.'/collection/'.$this->coll.'/search.atom?max='.$max.'&q='.$q;
+			$search_url = $this->dase_url.'/collection/'.$this->coll.'/search.atom?max='.$max.'&start='.$start.'&q='.$q;
 		}
 		else{
-			$search_url = $this->dase_url.'/collection/'.$this->coll.'/search.json?max='.$max.'&q='.$q;
+			$search_url = $this->dase_url.'/collection/'.$this->coll.'/search.json?max='.$max.'&start='.$start.'&q='.$q;
 		}
 		$res = self::get($search_url);
 		if ('200' == $res[0]['http_code']) {
@@ -87,15 +92,6 @@ class DaseClient
 			} else {
 				return $res[1];
 			}
-		}
-	}
-
-	public function getItemsAtom($limit)
-	{
-		$url = $this->dase_url.'/collection/'.$this->coll.'.atom?limit='.$limit;
-		$res = self::get($url,$this->username,$this->password);
-		if ('200' == $res[0]['http_code']) {
-			return $res[1];
 		}
 	}
 
