@@ -76,14 +76,14 @@ class DaseClient
 		return $this->password;
 	}
 
-	public function search($q='',$max=500,$start=0)
+	public function search($q='',$max=500,$start=0,$sort='')
 	{
 		$q = urlencode($q);
 		if($this->return == 'atom'){
-			$search_url = $this->dase_url.'/collection/'.$this->coll.'/search.atom?max='.$max.'&start='.$start.'&q='.$q;
+			$search_url = $this->dase_url.'/collection/'.$this->coll.'/search.atom?max='.$max.'&sort='.$sort.'&start='.$start.'&q='.$q;
 		}
 		else{
-			$search_url = $this->dase_url.'/collection/'.$this->coll.'/search.json?max='.$max.'&start='.$start.'&q='.$q;
+			$search_url = $this->dase_url.'/collection/'.$this->coll.'/search.json?max='.$max.'&sort='.$sort.'&start='.$start.'&q='.$q;
 		}
 		$res = self::get($search_url);
 		if ('200' == $res[0]['http_code']) {
