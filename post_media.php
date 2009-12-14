@@ -3,7 +3,7 @@
 include 'DaseClient.php';
 
 $user = 'pkeane';
-$pass = DaseClient::getPassword($user);
+$pass = DaseClient::promptForPassword($user);
 $REPO = '/mnt/dar2/diia/wallercreek';
 
 

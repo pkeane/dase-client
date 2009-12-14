@@ -323,6 +323,20 @@ class DaseClient
 		return $entries;
 	}
 
+	public static function getElementValue($atom,$element) 
+	{
+		//returen first one found
+		$dom = new DOMDocument('1.0','utf-8');
+		$dom->loadXml($atom);
+		$x = new DomXPath($dom);
+		$x->registerNamespace('atom','http://www.w3.org/2005/Atom');
+		$xpath = "//atom:$element";
+		$nodeList = $x->query($xpath);
+		foreach ($nodeList as $node) {
+			return $node->nodeValue;
+		}
+	}
+
 	public static function getCategoryTermByScheme($atom,$scheme) 
 	{
 		$dom = new DOMDocument('1.0','utf-8');
