@@ -301,6 +301,22 @@ class DaseClient
 		return array($info,$result,$error);
 	}
 
+	public static function delete($url,$user,$pass)
+	{
+		$ch = curl_init();
+		curl_setopt($ch, CURLOPT_URL, $url);
+		curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "DELETE");
+		curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+		curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+		curl_setopt($ch, CURLOPT_USERPWD,$user.':'.$pass);
+		$result = curl_exec($ch);
+		//status is 'http_code'
+		$info = curl_getinfo($ch);
+		$error = curl_error($ch);
+		curl_close($ch);  
+		return array($info,$result,$error);
+	}
+
 	public static function getMime($file_path) 
 	{
 		//function is deprecated, so should be replaced
@@ -310,6 +326,7 @@ class DaseClient
 
 	public static function getEntries($atom_feed) 
 	{
+		$entries = array();
 		$dom = new DOMDocument('1.0','utf-8');
 		$dom->loadXml($atom_feed);
 		$atom_ns = 'http://www.w3.org/2005/Atom';
@@ -368,7 +385,10 @@ class DaseClient
 	public static function getLinkByRel($atom_entry,$rel) 
 	{
 		$dom = new DOMDocument('1.0','utf-8');
+		//try {
 		$dom->loadXml($atom_entry);
+		//} catch (Exception $e) {
+		//}
 		$x = new DomXPath($dom);
 		$x->registerNamespace('atom','http://www.w3.org/2005/Atom');
 		$xpath = "//atom:link[@rel='$rel']";
