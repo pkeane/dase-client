@@ -140,7 +140,7 @@ class DaseClient
 		return $resp[0]['http_code'];
 	}
 
-	public function postFileToCollection($file_path,$metadata=array(),$check_for_dups=true) 
+	public function postFileToCollection($file_path,$metadata=array(),$check_for_dups=true,$item_type='') 
 	{
 		if (!$this->username || !$this->password) {
 			throw new DaseClient_Exception('must set username and password');
@@ -173,6 +173,10 @@ class DaseClient
 			$json = '{'.join(',',$json_members).'}';
 			//check response
 			$resp = self::post($metadata_url,$json,$this->username,$this->password,'application/json');
+			if ($item_type) {
+				$item_type_url = self::getLinkByRel($resp[1],'http://daseproject.org/relation/edit-item_type'); 
+				$resp = self::post($item_type_url,$item_type,$this->username,$this->password,'text/plain');
+			}
 		}
 		return $resp;
 	}
