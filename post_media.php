@@ -10,7 +10,7 @@ $REPO = '/mnt/dar2/diia/wallercreek';
 $c = new DaseClient('waller');
 $c->setAuth($user,$pass);
 
-foreach ($c->getFilePaths('/mnt/dar2/diia/wallercreek') as $fp) {
+foreach ($c->getFilePaths($REPO) as $fp) {
 	$parts = explode('/',$fp);
 	$last = array_pop($parts);
 	$name = str_replace('.JPG','',$last);

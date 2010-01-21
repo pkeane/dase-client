@@ -16,6 +16,7 @@ class DaseClient
 		'application/xslt+xml',
 		'audio/mpeg',
 		'audio/mpg',
+		'audio/oga',
 		'image/gif',
 		'image/jpeg',
 		'image/png',
@@ -25,6 +26,7 @@ class DaseClient
 		'text/plain',
 		'text/xml',
 		'video/mp4',
+		'video/ogv',
 		'video/quicktime',
 	);
 
@@ -48,7 +50,7 @@ class DaseClient
 	 *
 	 */
 
-	public function __construct($collection_ascii_id,$return='json',$dase_url='http://dasebeta.laits.utexas.edu')
+	public function __construct($collection_ascii_id,$return='json',$dase_url='https://daseupload.laits.utexas.edu')
 	{
 		$this->dase_url = $dase_url;
 		$this->coll = $collection_ascii_id;
@@ -140,7 +142,7 @@ class DaseClient
 		return $resp[0]['http_code'];
 	}
 
-	public function postFileToCollection($file_path,$metadata=array(),$check_for_dups=true,$item_type='') 
+	public function postFileToCollection($file_path,$metadata=array(),$check_for_dups=true,$item_type='',$content='') 
 	{
 		if (!$this->username || !$this->password) {
 			throw new DaseClient_Exception('must set username and password');
@@ -162,9 +164,10 @@ class DaseClient
 		$body = file_get_contents($file_path);
 		//resp is an array of code & content
 		$resp = self::post($url,$body,$this->username,$this->password,$mime);
+		$atom_media_entry = $resp[1];
 		if ('201' == $resp[0]['http_code']) {
 			$json_members = array();
-			$metadata_url = self::getLinkByRel($resp[1],'http://daseproject.org/relation/edit-metadata'); 
+			$metadata_url = self::getLinkByRel($atom_media_entry,'http://daseproject.org/relation/edit-metadata'); 
 			foreach ($metadata as $att => $val) {
 				if ($att && $val) {
 					$json_members[] = '"'.$att.'":"'.$val.'"';
@@ -174,8 +177,18 @@ class DaseClient
 			//check response
 			$resp = self::post($metadata_url,$json,$this->username,$this->password,'application/json');
 			if ($item_type) {
-				$item_type_url = self::getLinkByRel($resp[1],'http://daseproject.org/relation/edit-item_type'); 
+				$item_url = self::getLinkByRel($atom_media_entry,'up'); 
+				$item_resp = self::get($item_url,$this->username,$this->password);
+				$item_atom = $item_resp[1];
+				$item_type_url = self::getLinkByRel($item_atom,'http://daseproject.org/relation/edit-item_type'); 
 				$resp = self::post($item_type_url,$item_type,$this->username,$this->password,'text/plain');
+			}
+			if ($content) {
+				$item_url = self::getLinkByRel($atom_media_entry,'up'); 
+				$item_resp = self::get($item_url,$this->username,$this->password);
+				$item_atom = $item_resp[1];
+				$item_type_url = self::getLinkByRel($item_atom,'http://daseproject.org/relation/edit-content'); 
+				$resp = self::post($item_type_url,$content,$this->username,$this->password,'text/plain');
 			}
 		}
 		return $resp;
@@ -186,6 +199,11 @@ class DaseClient
 		$dir = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory));
 		$files = array();
 		foreach ($dir as $file) {
+			$fn = $file->getFilename();
+			//skip files beginning w/ '._'
+			if ('._' == substr($fn,0,2)) {
+				continue;
+			}
 			$file_path = $file->getPathname();
 			$mime = self::getMime($file_path);
 			if (in_array($mime,self::$mime_types)) {
