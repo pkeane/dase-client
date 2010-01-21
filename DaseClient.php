@@ -16,7 +16,7 @@ class DaseClient
 		'application/xslt+xml',
 		'audio/mpeg',
 		'audio/mpg',
-		'audio/oga',
+		'audio/ogg',
 		'image/gif',
 		'image/jpeg',
 		'image/png',
@@ -26,7 +26,7 @@ class DaseClient
 		'text/plain',
 		'text/xml',
 		'video/mp4',
-		'video/ogv',
+		'video/ogg',
 		'video/quicktime',
 	);
 
