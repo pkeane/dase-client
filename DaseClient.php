@@ -11,6 +11,7 @@ class DaseClient
 	private $password;
 	public static $mime_types = array(
 		'application/msword',
+		'application/ogg',
 		'application/pdf',
 		'application/xml',
 		'application/xslt+xml',
