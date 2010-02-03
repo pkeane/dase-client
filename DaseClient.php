@@ -79,6 +79,40 @@ class DaseClient
 		return $this->password;
 	}
 
+	//get all collections that the user is either manager or OR are public
+	public function getUserCollections()
+	{
+		$url = $this->dase_url.'/user/'.$this->username.'/collections.json';
+		$res = self::get($url,$this->username,$this->password);
+		if ('200' == $res[0]['http_code']) {
+				return $res[1];
+		} else {
+			return $res[0]['http_code'];
+		}
+	}
+
+	public function searchCollections($q='',$collections=array(),$max=500,$start=0,$sort='')
+	{
+		//$collections is an array of collection_ascii_ids
+		$q = urlencode($q);
+		if($this->return == 'atom'){
+			$search_url = $this->dase_url.'/search.atom?max='.$max.'&sort='.$sort.'&start='.$start.'&q='.$q;
+		}
+		else{
+			$search_url = $this->dase_url.'/search.json?max='.$max.'&sort='.$sort.'&start='.$start.'&q='.$q;
+		}
+		$c_params = join('&c=',$collections);
+		$search_url .= '&c='.$c_params;
+		$res = self::get($search_url);
+		if ('200' == $res[0]['http_code']) {
+			if ($this->return == 'php') {
+				return $this->json2Php($res[1]);
+			} else {
+				return $res[1];
+			}
+		}
+	}
+
 	public function search($q='',$max=500,$start=0,$sort='')
 	{
 		$q = urlencode($q);
