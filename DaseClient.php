@@ -98,6 +98,19 @@ class DaseClient
 		}
 	}
 
+	public function getCollectionItemUris()
+	{
+		$url = $this->dase_url.'/collection/'.$this->coll.'/items.uris';
+		$res = self::get($url);
+		if ('200' == $res[0]['http_code']) {
+			if ($this->return_php) {
+				return $this->json2Php($res[1]);
+			} else {
+				return $res[1];
+			}
+		}
+	}
+
 	public function getCollectionAttributes()
 	{
 		$url = $this->dase_url.'/collection/'.$this->coll.'/attributes.json';
