@@ -467,6 +467,7 @@ class DaseClient
 			return $node->getAttribute('href');
 		}
 	}
+
 	public static function getMediaBySize($atom_entry,$size) 
 	{
 		$dom = new DOMDocument('1.0','utf-8');
@@ -510,6 +511,29 @@ class DaseClient
 		foreach ($nodeList as $node) {
 			return $node->getAttribute('title');
 		}
+	}
+
+	function getAdminMetadata($atom_entry,$att = '') 
+	{
+		$metadata = array();
+		$dom = new DOMDocument('1.0','utf-8');
+		$dom->loadXml($atom_entry);
+		$atom_ns = 'http://www.w3.org/2005/Atom';
+		$dase_ns = 'http://daseproject.org/ns/1.0';
+		foreach ($dom->getElementsByTagNameNS($atom_ns,'category') as $el) {
+			if ('http://daseproject.org/category/admin_metadata' == $el->getAttribute('scheme')) {
+				$att_ascii_id = $el->getAttribute('term');
+				$metadata[$att_ascii_id] = $el->nodeValue;
+			}
+		}
+		if ($att) {
+			if (isset($metadata[$att])) {
+				return $metadata[$att];
+			} else {
+				return false;
+			}
+		}
+		return $metadata;
 	}
 
 	function getMetadata($atom_entry,$att = '',$include_private_metadata=false) 
