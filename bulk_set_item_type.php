@@ -4,7 +4,7 @@ include 'DaseClient.php';
 
 ini_set('memory_limit','700M');
 
-$user = '--username--';
+$user = 'pkeane';
 $pass = DaseClient::promptForPassword($user);
 
 $client = new DaseClient('waller');
@@ -21,5 +21,7 @@ foreach (explode("\n",$uris) as $uri) {
 			//print HTTP code and response message
 			print $post_res[0]['http_code'].' '.$post_res[1]."\n";
 		}
-	}
+	} else {
+		print $res[0]['http_code'].' '.$res[1]."\n";
+	}	
 }
