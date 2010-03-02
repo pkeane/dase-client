@@ -125,7 +125,7 @@ class DaseClient
 		$res = self::get($search_url);
 		if ('200' == $res[0]['http_code']) {
 			if ($this->return == 'php') {
-				return $this->json2Php($res[1]);
+				return $this->json2php($res[1]);
 			} else {
 				return $res[1];
 			}
