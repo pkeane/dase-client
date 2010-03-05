@@ -279,10 +279,7 @@ class DaseClient
 		$ver = explode( '.', PHP_VERSION );
 		$version = $ver[0] . $ver[1] . $ver[2];
 		if ($version >= 520) {
-		//	return json_decode($json);
-			//	json_decode not working 
-			$js = new Services_JSON();
-			return $js->decode($json);
+			return json_decode($json);
 		} else {
 			$js = new Services_JSON();
 			return $js->decode($json);
