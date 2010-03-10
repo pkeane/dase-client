@@ -6,7 +6,7 @@ class DaseClient
 {
 	private $coll;
 	private $dase_url;
-	private $return_php;
+	private $return;
 	private $username;
 	private $password;
 	public static $mime_types = array(
@@ -137,7 +137,7 @@ class DaseClient
 		$url = $this->dase_url.'/collection/'.$this->coll.'/items.uris';
 		$res = self::get($url);
 		if ('200' == $res[0]['http_code']) {
-			if ($this->return_php) {
+			if ('php' == $this->return) {
 				return $this->json2Php($res[1]);
 			} else {
 				return $res[1];
@@ -150,7 +150,7 @@ class DaseClient
 		$url = $this->dase_url.'/collection/'.$this->coll.'/archive.uris';
 		$res = self::get($url);
 		if ('200' == $res[0]['http_code']) {
-			if ($this->return_php) {
+			if ('php' == $this->return) {
 				return $this->json2Php($res[1]);
 			} else {
 				return $res[1];
@@ -163,7 +163,7 @@ class DaseClient
 		$url = $this->dase_url.'/collection/'.$this->coll.'/attributes.json';
 		$res = self::get($url,$this->username,$this->password);
 		if ('200' == $res[0]['http_code']) {
-			if ($this->return_php) {
+			if ('php' == $this->return) {
 				return $this->json2Php($res[1]);
 			} else {
 				return $res[1];
@@ -185,7 +185,7 @@ class DaseClient
 		$url = $this->dase_url.'/attribute/'.$this->coll.'/'.$att.'.json';
 		$res = self::get($url,$this->username,$this->password);
 		if ('200' == $res[0]['http_code']) {
-			if ($this->return_php) {
+			if ('php' == $this->return) {
 				return $this->json2Php($res[1]);
 			} else {
 				return $res[1];
