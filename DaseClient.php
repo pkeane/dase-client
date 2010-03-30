@@ -85,7 +85,7 @@ class DaseClient
 		$url = $this->dase_url.'/user/'.$this->username.'/collections.json';
 		$res = self::get($url,$this->username,$this->password);
 		if ('200' == $res[0]['http_code']) {
-				return $res[1];
+			return $res[1];
 		} else {
 			return $res[0]['http_code'];
 		}
@@ -550,6 +550,40 @@ class DaseClient
 		return $metadata;
 	}
 
+	public static function createCollection($host,$collection_name,$user,$pass) 
+	{
+		$ascii = self::dirify($collection_name);
+		$entry = DaseClient::makeAtom($ascii,$collection_name,array());
+		$entry = DaseClient::addCategory($entry,'collection','http://daseproject.org/category/entrytype');
+		//could have been retrieved from base AtomPub service doc:
+		$url = $host.'/collections';
+		$resp = DaseClient::post($url,$entry,$user,$pass,'application/atom+xml');
+		return $resp;
+	}
+
+	public static function dirify($str)
+	{
+		$str = strtolower(preg_replace('/[^a-zA-Z0-9_-]/','_',trim($str)));
+		return preg_replace('/__*/','_',$str);
+	}
+
+	public static function addCategory($atom_entry,$term,$scheme,$label='')
+	{
+		$dom = new DOMDocument('1.0','utf-8');
+		$dom->loadXml($atom_entry);
+		$atom_ns = 'http://www.w3.org/2005/Atom';
+		$cat = $dom->documentElement->appendChild($dom->createElementNS($atom_ns,'category'));
+		$cat->setAttribute('term',$term);
+		if ($scheme) {
+			$cat->setAttribute('scheme',$scheme);
+		}
+		if ($label) {
+			$cat->setAttribute('label',$label);
+		}
+		$dom->formatOutput = true;
+		return $dom->saveXML();
+	}
+
 	function getMetadata($atom_entry,$att = '',$include_private_metadata=false) 
 	{
 		$metadata = array();
@@ -608,9 +642,9 @@ class DaseClient
 				$v['text'] = $el->getAttribute('title');
 
 				$v['href'] = $el->getAttribute('href');
-                $v['mod'] = $el->getAttributeNS($dase_ns,'mod');
-                $v['modtype'] = $el->getAttributeNS($dase_ns,'modtype');
-                $metadata[$att_ascii_id]['values'][] = $v;
+				$v['mod'] = $el->getAttributeNS($dase_ns,'mod');
+				$v['modtype'] = $el->getAttributeNS($dase_ns,'modtype');
+				$metadata[$att_ascii_id]['values'][] = $v;
 				if (1 == count($metadata[$att_ascii_id]['values'])) {
 					$metadata[$att_ascii_id]['title'] = $v['title'];
 					$metadata[$att_ascii_id]['text'] = $v['title'];
@@ -709,94 +743,94 @@ class Services_JSON
 		$this->use = $use;
 	}
 
-    /**
-     * convert a string from one UTF-16 char to one UTF-8 char
-     *
-     * Normally should be handled by mb_convert_encoding, but
-     * provides a slower PHP-only method for installations
-     * that lack the multibye string extension.
-     *
-     * @param    string  $utf16  UTF-16 character
-     * @return   string  UTF-8 character
-     * @access   private
-     */
-    function utf162utf8($utf16)
-    {
-        // oh please oh please oh please oh please oh please
-        if(function_exists('mb_convert_encoding')) {
-            return mb_convert_encoding($utf16, 'UTF-8', 'UTF-16');
-        }
+	/**
+	 * convert a string from one UTF-16 char to one UTF-8 char
+	 *
+	 * Normally should be handled by mb_convert_encoding, but
+	 * provides a slower PHP-only method for installations
+	 * that lack the multibye string extension.
+	 *
+	 * @param    string  $utf16  UTF-16 character
+	 * @return   string  UTF-8 character
+	 * @access   private
+	 */
+	function utf162utf8($utf16)
+	{
+		// oh please oh please oh please oh please oh please
+		if(function_exists('mb_convert_encoding')) {
+			return mb_convert_encoding($utf16, 'UTF-8', 'UTF-16');
+		}
 
-        $bytes = (ord($utf16{0}) << 8) | ord($utf16{1});
+		$bytes = (ord($utf16{0}) << 8) | ord($utf16{1});
 
-        switch(true) {
-        case ((0x7F & $bytes) == $bytes):
-            // this case should never be reached, because we are in ASCII range
-            // see: http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
-            return chr(0x7F & $bytes);
+		switch(true) {
+		case ((0x7F & $bytes) == $bytes):
+			// this case should never be reached, because we are in ASCII range
+			// see: http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
+			return chr(0x7F & $bytes);
 
-        case (0x07FF & $bytes) == $bytes:
-            // return a 2-byte UTF-8 character
-            // see: http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
-            return chr(0xC0 | (($bytes >> 6) & 0x1F))
-                . chr(0x80 | ($bytes & 0x3F));
+		case (0x07FF & $bytes) == $bytes:
+			// return a 2-byte UTF-8 character
+			// see: http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
+			return chr(0xC0 | (($bytes >> 6) & 0x1F))
+				. chr(0x80 | ($bytes & 0x3F));
 
-        case (0xFFFF & $bytes) == $bytes:
-            // return a 3-byte UTF-8 character
-            // see: http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
-            return chr(0xE0 | (($bytes >> 12) & 0x0F))
-                . chr(0x80 | (($bytes >> 6) & 0x3F))
-                . chr(0x80 | ($bytes & 0x3F));
-        }
+		case (0xFFFF & $bytes) == $bytes:
+			// return a 3-byte UTF-8 character
+			// see: http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
+			return chr(0xE0 | (($bytes >> 12) & 0x0F))
+				. chr(0x80 | (($bytes >> 6) & 0x3F))
+				. chr(0x80 | ($bytes & 0x3F));
+		}
 
-        // ignoring UTF-32 for now, sorry
-        return '';
-    }
+		// ignoring UTF-32 for now, sorry
+		return '';
+	}
 
 
-    /**
-     * convert a string from one UTF-8 char to one UTF-16 char
-     *
-     * Normally should be handled by mb_convert_encoding, but
-     * provides a slower PHP-only method for installations
-     * that lack the multibye string extension.
-     *
-     * @param    string  $utf8   UTF-8 character
-     * @return   string  UTF-16 character
-     * @access   private
-     */
-    function utf82utf16($utf8)
-    {
-        // oh please oh please oh please oh please oh please
-        if(function_exists('mb_convert_encoding')) {
-            return mb_convert_encoding($utf8, 'UTF-16', 'UTF-8');
-        }
+	/**
+	 * convert a string from one UTF-8 char to one UTF-16 char
+	 *
+	 * Normally should be handled by mb_convert_encoding, but
+	 * provides a slower PHP-only method for installations
+	 * that lack the multibye string extension.
+	 *
+	 * @param    string  $utf8   UTF-8 character
+	 * @return   string  UTF-16 character
+	 * @access   private
+	 */
+	function utf82utf16($utf8)
+	{
+		// oh please oh please oh please oh please oh please
+		if(function_exists('mb_convert_encoding')) {
+			return mb_convert_encoding($utf8, 'UTF-16', 'UTF-8');
+		}
 
-        switch(strlen($utf8)) {
-        case 1:
-            // this case should never be reached, because we are in ASCII range
-            // see: http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
-            return $utf8;
+		switch(strlen($utf8)) {
+		case 1:
+			// this case should never be reached, because we are in ASCII range
+			// see: http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
+			return $utf8;
 
-        case 2:
-            // return a UTF-16 character from a 2-byte UTF-8 char
-            // see: http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
-            return chr(0x07 & (ord($utf8{0}) >> 2))
-                . chr((0xC0 & (ord($utf8{0}) << 6))
-                | (0x3F & ord($utf8{1})));
+		case 2:
+			// return a UTF-16 character from a 2-byte UTF-8 char
+			// see: http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
+			return chr(0x07 & (ord($utf8{0}) >> 2))
+				. chr((0xC0 & (ord($utf8{0}) << 6))
+				| (0x3F & ord($utf8{1})));
 
-        case 3:
-            // return a UTF-16 character from a 3-byte UTF-8 char
-            // see: http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
-            return chr((0xF0 & (ord($utf8{0}) << 4))
-                | (0x0F & (ord($utf8{1}) >> 2)))
-                    . chr((0xC0 & (ord($utf8{1}) << 6))
-                        | (0x7F & ord($utf8{2})));
-        }
+		case 3:
+			// return a UTF-16 character from a 3-byte UTF-8 char
+			// see: http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
+			return chr((0xF0 & (ord($utf8{0}) << 4))
+				| (0x0F & (ord($utf8{1}) >> 2)))
+					. chr((0xC0 & (ord($utf8{1}) << 6))
+						| (0x7F & ord($utf8{2})));
+		}
 
-        // ignoring UTF-32 for now, sorry
-        return '';
-    }
+		// ignoring UTF-32 for now, sorry
+		return '';
+	}
 
 
 	/**
