@@ -267,6 +267,7 @@ class DaseClient
 			}
 			$file_path = $file->getPathname();
 			$mime = self::getMime($file_path);
+			//print $file_path.$mime."\n";
 			if (in_array($mime,self::$mime_types)) {
 				$files[] = $file_path;
 			}
@@ -404,7 +405,13 @@ class DaseClient
 	{
 		//function is deprecated, so should be replaced
 		// at some point
-		return mime_content_type($file_path);
+		//return mime_content_type($file_path);
+		//
+		$command = 'file -i '.$file_path;
+		$exec_output = array();
+		$results = exec($command,$exec_output);
+		$parts = explode(' ',$results);
+		return array_pop($parts);
 	}
 
 	public static function getEntries($atom_feed) 
