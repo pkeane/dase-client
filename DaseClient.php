@@ -407,12 +407,26 @@ class DaseClient
 		// at some point
 		//return mime_content_type($file_path);
 		//
-		$command = 'file -i '.$file_path;
-		$exec_output = array();
-		$results = exec($command,$exec_output);
-		$parts = explode(' ',$results);
-		return array_pop($parts);
-	}
+		//$command = 'file -i '.$file_path;
+		//$exec_output = array();
+		//$results = exec($command,$exec_output);
+		//$parts = explode(' ',$results);
+		//return array_pop($parts);
+        //from http://forums.digitalpoint.com/showthread.php?t=522166
+        $mtype = '';
+        if (function_exists('mime_content_type')){
+            $mtype = mime_content_type($file_path);
+        }
+        else if (function_exists('finfo_file')){
+            $finfo = finfo_open(FILEINFO_MIME);
+            $mtype = finfo_file($finfo, $file_path);
+            finfo_close($finfo);  
+        }
+        if ($mtype == ''){
+            $mtype = "application/force-download";
+        }
+        return $mtype;
+    }
 
 	public static function getEntries($atom_feed) 
 	{
