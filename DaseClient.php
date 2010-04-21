@@ -79,6 +79,11 @@ class DaseClient
 		return $this->password;
 	}
 
+    public function getDaseUrl()
+    {
+        return $this->dase_url;
+    }
+
 	//get all collections that the user is either manager or OR are public
 	public function getUserCollections()
 	{
@@ -112,6 +117,19 @@ class DaseClient
 			}
 		}
 	}
+
+	public function getBySerialNumber($sernum)
+    {
+		$url = $this->dase_url.'/item/'.$this->coll.'/'.$sernum.'.json';
+		$res = self::get($url,$this->username,$this->password);
+		if ('200' == $res[0]['http_code']) {
+			if ($this->return == 'php') {
+				return $this->json2Php($res[1]);
+			} else {
+				return $res[1];
+			}
+		}
+    }
 
 	public function search($q='',$max=500,$start=0,$sort='')
 	{
@@ -403,15 +421,6 @@ class DaseClient
 
 	public static function getMime($file_path) 
 	{
-		//function is deprecated, so should be replaced
-		// at some point
-		//return mime_content_type($file_path);
-		//
-		//$command = 'file -i '.$file_path;
-		//$exec_output = array();
-		//$results = exec($command,$exec_output);
-		//$parts = explode(' ',$results);
-		//return array_pop($parts);
         //from http://forums.digitalpoint.com/showthread.php?t=522166
         $mtype = '';
         if (function_exists('mime_content_type')){
@@ -587,6 +596,22 @@ class DaseClient
 		$str = strtolower(preg_replace('/[^a-zA-Z0-9_-]/','_',trim($str)));
 		return preg_replace('/__*/','_',$str);
 	}
+
+    public static function makeSerialNumber($str)
+    {
+        if ($str) {
+            //get just the last segment if it includes directory path
+            $str = array_pop(explode('/',$str));
+            $str = preg_replace('/[^a-zA-Z0-9_-]/','_',trim($str));
+            $str = trim(preg_replace('/__*/','_',$str),'_');
+            if (strlen($str) <= 50) {
+                return $str;
+            }
+            return substr($str,0,50);
+        } else {
+            return null;
+        }
+    }
 
 	public static function addCategory($atom_entry,$term,$scheme,$label='')
 	{
