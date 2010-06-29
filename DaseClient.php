@@ -293,7 +293,7 @@ class DaseClient
 		return $files;
 	}
 
-	private function json2Php($json)
+	public function json2Php($json)
 	{
 		$ver = explode( '.', PHP_VERSION );
 		$version = $ver[0] . $ver[1] . $ver[2];
