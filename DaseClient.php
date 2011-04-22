@@ -377,9 +377,9 @@ class DaseClient
 	public static function post($url,$body,$user,$pass,$mime_type='')
 	{
 		if (strpos($url,'?')) {
-			$url = $url .'&auth=http';
+			$url = $url .'&auth=service';
 		} else {
-			$url = $url .'?auth=http';
+			$url = $url .'?auth=service';
 		}
 		$ch = curl_init();
 		curl_setopt($ch, CURLOPT_URL, $url);
