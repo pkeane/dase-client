@@ -285,7 +285,7 @@ class DaseClient
 			}
 			$file_path = $file->getPathname();
 			$mime = self::getMime($file_path);
-			//print $file_path.$mime."\n";
+		//	print $file_path.$mime."\n";
 			if (in_array($mime,self::$mime_types)) {
 				$files[] = $file_path;
 			}
@@ -425,6 +425,7 @@ class DaseClient
         $mtype = '';
         if (function_exists('mime_content_type')){
             $mtype = mime_content_type($file_path);
+						//print $mtype."\n";
         }
         else if (function_exists('finfo_file')){
             $finfo = finfo_open(FILEINFO_MIME);
@@ -499,7 +500,7 @@ class DaseClient
 	{
 		$dom = new DOMDocument('1.0','utf-8');
 		//try {
-		$dom->loadXml($atom_entry);
+		$dom->loadXml(trim($atom_entry));
 		//} catch (Exception $e) {
 		//}
 		$x = new DomXPath($dom);
